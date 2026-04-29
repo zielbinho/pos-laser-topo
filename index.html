@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Controle Laser GPS - Paraná</title>
-    <!-- Fonts: Inter for UI, JetBrains Mono for data -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -347,13 +346,12 @@
             <h1>CONTROLE LASER GPS <span style="color:var(--neon-blue)">— PARANÁ</span></h1>
         </div>
         <div class="status-badge">
-            <div class="status-dot"></div>
-            <span id="st">STATUS: ONLINE</span>
+            <div class="status-dot" id="status-dot"></div>
+            <span id="st">CONECTANDO NUVEM...</span>
         </div>
     </header>
 
     <main class="dashboard-grid">
-        <!-- Col 1: Manual Controls -->
         <section class="card">
             <h2 class="card-title">Controles Manuais</h2>
             
@@ -362,7 +360,7 @@
                     <span>PAN (Eixo X)</span>
                     <span id="vP">90.0°</span>
                 </div>
-                <input type="range" id="p" min="0" max="180" step="0.1" value="90" oninput="moverManual()">
+                <input type="range" id="p" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
             </div>
 
             <div class="control-group">
@@ -370,7 +368,7 @@
                     <span>TILT (Eixo Y)</span>
                     <span id="vT">90.0°</span>
                 </div>
-                <input type="range" id="t" min="0" max="180" step="0.1" value="90" oninput="moverManual()">
+                <input type="range" id="t" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
             </div>
 
             <p class="info-text">
@@ -378,7 +376,6 @@
             </p>
         </section>
 
-        <!-- Col 2: Central Map (Bento Hero) -->
         <section class="card map-container-card">
             <div id="mapa" onclick="cliqueMapa(event)">
                 <div class="radar-sweep"></div>
@@ -390,7 +387,6 @@
             </div>
         </section>
 
-        <!-- Col 3: Actions & Calibration -->
         <div class="right-column">
             <section class="card">
                 <h2 class="card-title">Atalhos de Cantos</h2>
@@ -527,36 +523,62 @@
             const pointer = document.getElementById('laser-pointer');
             const rect = mapa.getBoundingClientRect();
             
+            // Pega coordenada do clique baseada no tamanho real da div na tela
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
 
-            // Visualização do ponto clicado
+            // Visualização do ponto vermelho
             pointer.style.display = 'block';
             pointer.style.left = x + 'px';
             pointer.style.top = y + 'px';
 
-            console.log('Clique no mapa: X=' + x + ', Y=' + y);
+            // Matemática do Firebase usando os limites do mapa na tela
+            let pMin = (calib.pSE + calib.pIE) / 2.0;
+            let pMax = (calib.pSD + calib.pID) / 2.0;
+            let tMin = (calib.tIE + calib.tID) / 2.0;
+            let tMax = (calib.tSE + calib.tSD) / 2.0;
+            
+            let fP = (x / rect.width) * (pMax - pMin) + pMin;
+            let fT = (y / rect.height) * (tMin - tMax) + tMax;
+            
+            // Trava nos limites de segurança mecânica
+            if(fP < 0) fP = 0; if(fP > 180) fP = 180;
+            if(fT < 0) fT = 0; if(fT > 170) fT = 170;
+
+            // Atualiza Sliders HTML
+            document.getElementById('p').value = fP;
+            document.getElementById('t').value = fT;
+            updateDisplays();
+
+            // Ativa o laser visualmente no botão e manda pro banco
+            if(!laserLigado) toggleLaser(); 
+            enviarComando(fP, fT, true);
         }
 
         function moverManual() {
             updateDisplays();
-            const pan = document.getElementById('p').value;
-            const tilt = document.getElementById('t').value;
-            console.log('Movimento Manual: Pan=' + pan + ', Tilt=' + tilt);
+            const pan = parseFloat(document.getElementById('p').value);
+            const tilt = parseFloat(document.getElementById('t').value);
+            enviarComando(pan, tilt);
         }
 
-        let laserOn = false;
         function toggleLaser() {
-            laserOn = !laserOn;
-            const btn = document.querySelector('.btn-red');
-            if (laserOn) {
-                btn.style.boxShadow = '0 0 30px var(--accent-red)';
+            laserLigado = !laserLigado;
+            const btn = document.querySelector('.btn-laser'); // Corrigido a classe da IA
+            
+            if (laserLigado) {
+                btn.style.boxShadow = '0 0 30px var(--neon-red)';
                 btn.innerHTML = 'LASER ATIVO';
             } else {
-                btn.style.boxShadow = '0 4px 15px var(--accent-red-glow)';
-                btn.innerHTML = 'ON/OFF Laser';
+                btn.style.boxShadow = '0 4px 15px rgba(255,68,68,0.3)';
+                btn.innerHTML = 'ON/OFF LASER';
+                document.getElementById('laser-pointer').style.display = 'none'; // Esconde a bolinha
             }
-            console.log('Laser: ' + (laserOn ? 'ON' : 'OFF'));
+            
+            // Envia o novo estado mantendo os eixos de onde estão
+            const pan = parseFloat(document.getElementById('p').value);
+            const tilt = parseFloat(document.getElementById('t').value);
+            enviarComando(pan, tilt, laserLigado);
         }
         
         window.onload = () => {
