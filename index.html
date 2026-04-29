@@ -436,16 +436,92 @@
     </main>
 
     <script>
-        // Placeholders para integração com Firebase (injetada posteriormente)
+        const DB_URL = "https://pos-laser-topo-default-rtdb.firebaseio.com";
+        const SECRET = "WYfZtz6PG4PIKDjonDRx36GghcS9cv10NSBkqD0b";
         
-        // Atualiza os displays de valores dos sliders
+        let calib = { pSE: 90, tSE: 90, pSD: 90, tSD: 90, pIE: 90, tIE: 90, pID: 90, tID: 90 };
+        let laserLigado = false;
+        
+        // --- FUNÇÕES DE MOVIMENTO ---
+        
+        async function enviarComando(pan, tilt, laser = laserLigado) {
+            document.getElementById('st').innerText = `MOVENDO: ${pan.toFixed(1)}° / ${tilt.toFixed(1)}°`;
+            await fetch(`${DB_URL}/comando.json?auth=${SECRET}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ pan: pan, tilt: tilt, laser: laser })
+            });
+        }
+        
+        function irCanto(canto) {
+            const p = calib["p" + canto];
+            const t = calib["t" + canto];
+            document.getElementById('p').value = p;
+            document.getElementById('t').value = t;
+            updateDisplays();
+            enviarComando(p, t);
+        }
+        
+        // --- GESTÃO DE CIDADES NO BANCO ---
+        
+        async function carregarCidades() {
+            const res = await fetch(`${DB_URL}/cidades.json?auth=${SECRET}`);
+            const cidades = await res.json();
+            const select = document.getElementById('cidades');
+            select.innerHTML = '<option value="" disabled selected>Selecionar destino...</option>';
+            
+            if (cidades) {
+                Object.keys(cidades).forEach(nome => {
+                    const opt = document.createElement('option');
+                    opt.value = `${cidades[nome].p},${cidades[nome].t}`;
+                    opt.innerHTML = nome;
+                    select.appendChild(opt);
+                });
+            }
+        }
+        
+        function irCidadeSelecionada(coordsStr) {
+            if (!coordsStr) return;
+            const [p, t] = coordsStr.split(',').map(Number);
+            document.getElementById('p').value = p;
+            document.getElementById('t').value = t;
+            updateDisplays();
+            if (!laserLigado) toggleLaser();
+            enviarComando(p, t, true);
+        }
+        
+        async function salvarAtualComoCidade() {
+            const nome = document.getElementById('nome-cidade').value.trim();
+            if (!nome) return alert("Digite o nome da cidade!");
+            
+            const p = parseFloat(document.getElementById('p').value);
+            const t = parseFloat(document.getElementById('t').value);
+        
+            await fetch(`${DB_URL}/cidades/${nome}.json?auth=${SECRET}`, {
+                method: 'PUT',
+                body: JSON.stringify({ p: p, t: t })
+            });
+        
+            document.getElementById('nome-cidade').value = "";
+            alert("Cidade salva no banco!");
+            carregarCidades(); // Recarrega a lista
+        }
+        
+        // --- CALIBRAÇÃO E BOOT ---
+        
+        async function carregarCalibracao() {
+            const req = await fetch(`${DB_URL}/calibracao.json?auth=${SECRET}`);
+            const dados = await req.json();
+            if(dados) calib = { ...calib, ...dados };
+            document.getElementById('st').innerText = "STATUS: ONLINE";
+        }
+        
         function updateDisplays() {
             const panVal = document.getElementById('p').value;
             const tiltVal = document.getElementById('t').value;
             document.getElementById('vP').innerText = parseFloat(panVal).toFixed(1) + '°';
             document.getElementById('vT').innerText = parseFloat(tiltVal).toFixed(1) + '°';
         }
-
+        
         function cliqueMapa(event) {
             const mapa = document.getElementById('mapa');
             const pointer = document.getElementById('laser-pointer');
@@ -482,31 +558,12 @@
             }
             console.log('Laser: ' + (laserOn ? 'ON' : 'OFF'));
         }
-
-        function irCidade(cidade) {
-            console.log('Movendo para cidade: ' + cidade);
-            // Simulação de alteração de slider ao ir para cidade
-            if(cidade === 'curitiba') {
-                document.getElementById('p').value = 45.5;
-                document.getElementById('t').value = 120.2;
-            }
+        
+        window.onload = () => {
             updateDisplays();
-        }
-
-        function salvarCalibracao() {
-            const canto = document.getElementById('canto').value;
-            const pan = document.getElementById('p').value;
-            const tilt = document.getElementById('t').value;
-            console.log('Salvando calibração: ' + canto + ' -> Pan: ' + pan + ', Tilt: ' + tilt);
-            
-            const btn = document.querySelector('.btn-green');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = 'SALVO COM SUCESSO!';
-            setTimeout(() => btn.innerHTML = originalText, 2000);
-        }
-
-        // Inicializar displays
-        window.onload = updateDisplays;
+            carregarCalibracao();
+            carregarCidades();
+        };
     </script>
 </body>
 </html>
