@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle Laser GPS - Paraná</title>
+    <!-- Fonts: Inter for UI, JetBrains Mono for data -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #121212;
+            --card: #1e1e1e;
+            --card-alt: #2d2d2d;
+            --neon-green: #00ff88;
+            --neon-red: #ff4444;
+            --neon-blue: #00d4ff;
+            --text-main: #e0e0e0;
+            --text-dim: #888;
+            --font-sans: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Header Styles */
+        header {
+            height: 80px;
+            padding: 0 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #333;
+            background: var(--card);
+        }
+
+        header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--text-dim);
+            font-family: var(--font-mono);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-green);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+            100% { opacity: 1; transform: scale(1); }
+        }
+
+        /* Main Bento Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 320px 1fr 320px;
+            gap: 20px;
+            padding: 20px;
+            flex: 1;
+            max-width: 1440px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Card Styles */
+        .card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            transition: var(--transition);
+        }
+
+        .card:hover {
+            border-color: rgba(255,255,255,0.1);
+            transform: translateY(-2px);
+        }
+
+        .card-title {
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .card-title::before {
+            content: '';
+            width: 3px;
+            height: 12px;
+            background: var(--neon-blue);
+            border-radius: 2px;
+        }
+
+        /* Map Card Layout */
+        .map-container-card {
+            grid-column: 2;
+            padding: 0 !important;
+            background: var(--card-alt) !important;
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #333 !important;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mapa {
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle, rgba(0,212,255,0.05) 1px, transparent 1px);
+            background-size: 30px 30px;
+            cursor: crosshair;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #mapa::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            height: 1px;
+            background: rgba(0,212,255,0.15);
+            transform: translate(-50%, -50%);
+        }
+
+        #mapa::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 1px;
+            height: 100%;
+            background: rgba(0,212,255,0.15);
+            transform: translate(-50%, -50%);
+        }
+
+        .radar-sweep {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 50%;
+            height: 50%;
+            background: linear-gradient(45deg, rgba(0, 212, 255, 0.1), transparent 70%);
+            transform-origin: top left;
+            animation: sweep 4s linear infinite;
+        }
+
+        @keyframes sweep {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .map-point {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--neon-red);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--neon-red);
+            transform: translate(-50%, -50%);
+            z-index: 10;
+        }
+
+        /* Control UI Elements */
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: var(--text-main);
+        }
+
+        .control-label span:last-child {
+            color: var(--neon-blue);
+            font-family: var(--font-mono);
+            background: rgba(0, 212, 255, 0.1);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: var(--neon-blue);
+            cursor: pointer;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            appearance: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(255,255,255,0.5);
+        }
+
+        select {
+            width: 100%;
+            background: #121212;
+            border: 1px solid #444;
+            color: white;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        select:focus {
+            border-color: var(--neon-blue);
+        }
+
+        /* Buttons matching theme */
+        .btn-laser {
+            background: linear-gradient(135deg, #ff4444, #cc0000);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255,68,68,0.3);
+            width: 100%;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-top: auto;
+        }
+
+        .btn-laser:hover {
+            filter: brightness(1.2);
+            transform: translateY(-2px);
+        }
+
+        .btn-save {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-save:hover {
+            background: var(--neon-green);
+            color: black;
+            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
+        }
+
+        /* Right Column stacking */
+        .right-column {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-text {
+            font-size: 11px;
+            color: var(--text-dim);
+            line-height: 1.5;
+            margin-top: auto;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1100px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .map-container-card {
+                grid-column: span 2;
+                height: 400px;
+                order: -1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 0 20px; height: 70px; }
+            header h1 { font-size: 18px; }
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            .map-container-card {
+                grid-column: span 1;
+                height: 300px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div>
+            <h1>CONTROLE LASER GPS <span style="color:var(--neon-blue)">— PARANÁ</span></h1>
+        </div>
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            <span id="st">STATUS: ONLINE</span>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- Col 1: Manual Controls -->
+        <section class="card">
+            <h2 class="card-title">Controles Manuais</h2>
+            
+            <div class="control-group">
+                <div class="control-label">
+                    <span>PAN (Eixo X)</span>
+                    <span id="vP">90.0°</span>
+                </div>
+                <input type="range" id="p" min="0" max="180" step="0.1" value="90" oninput="moverManual()">
+            </div>
+
+            <div class="control-group">
+                <div class="control-label">
+                    <span>TILT (Eixo Y)</span>
+                    <span id="vT">90.0°</span>
+                </div>
+                <input type="range" id="t" min="0" max="180" step="0.1" value="90" oninput="moverManual()">
+            </div>
+
+            <p class="info-text">
+                Ajuste os servos manualmente para calibração fina ou inspeção visual de coordenadas específicas.
+            </p>
+        </section>
+
+        <!-- Col 2: Central Map (Bento Hero) -->
+        <section class="card map-container-card">
+            <div id="mapa" onclick="cliqueMapa(event)">
+                <div class="radar-sweep"></div>
+                <div id="laser-pointer" class="map-point" style="display: none;"></div>
+                
+                <div style="position:absolute; bottom:20px; left:20px; font-family:var(--font-mono); font-size:10px; color:rgba(255,255,255,0.2); pointer-events:none;">
+                    RADAR GRID: SCALE 1:1000<br>VAR: PR_MAP_COORD
+                </div>
+            </div>
+        </section>
+
+        <!-- Col 3: Actions & Calibration -->
+        <div class="right-column">
+            <section class="card" style="flex: 1;">
+                <h2 class="card-title">Ações Rápidas</h2>
+                <div class="control-group">
+                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">IR PARA CIDADE</label>
+                    <select id="cidades" onchange="irCidade(this.value)">
+                        <option value="" disabled selected>Selecionar destino...</option>
+                        <option value="curitiba">Curitiba</option>
+                        <option value="ponta_grossa">Ponta Grossa</option>
+                        <option value="cascavel">Cascavel</option>
+                        <option value="londrina">Londrina</option>
+                        <option value="maringa">Maringá</option>
+                        <option value="foz_iguacu">Foz do Iguaçu</option>
+                    </select>
+                </div>
+                <button class="btn-laser" onclick="toggleLaser()">ON/OFF LASER</button>
+            </section>
+
+            <section class="card" style="flex: 1;">
+                <h2 class="card-title">Calibração</h2>
+                <div class="control-group">
+                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">REFERÊNCIA</label>
+                    <select id="canto">
+                        <option value="SE">Superior Esquerdo (NW)</option>
+                        <option value="SD">Superior Direito (NE)</option>
+                        <option value="IE">Inferior Esquerdo (SW)</option>
+                        <option value="ID">Inferior Direito (SE)</option>
+                    </select>
+                </div>
+                <button class="btn-save" onclick="salvarCalibracao()">SALVAR POSIÇÃO</button>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Placeholders para integração com Firebase (injetada posteriormente)
+        
+        // Atualiza os displays de valores dos sliders
+        function updateDisplays() {
+            const panVal = document.getElementById('p').value;
+            const tiltVal = document.getElementById('t').value;
+            document.getElementById('vP').innerText = parseFloat(panVal).toFixed(1) + '°';
+            document.getElementById('vT').innerText = parseFloat(tiltVal).toFixed(1) + '°';
+        }
+
+        function cliqueMapa(event) {
+            const mapa = document.getElementById('mapa');
+            const pointer = document.getElementById('laser-pointer');
+            const rect = mapa.getBoundingClientRect();
+            
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            // Visualização do ponto clicado
+            pointer.style.display = 'block';
+            pointer.style.left = x + 'px';
+            pointer.style.top = y + 'px';
+
+            console.log('Clique no mapa: X=' + x + ', Y=' + y);
+        }
+
+        function moverManual() {
+            updateDisplays();
+            const pan = document.getElementById('p').value;
+            const tilt = document.getElementById('t').value;
+            console.log('Movimento Manual: Pan=' + pan + ', Tilt=' + tilt);
+        }
+
+        let laserOn = false;
+        function toggleLaser() {
+            laserOn = !laserOn;
+            const btn = document.querySelector('.btn-red');
+            if (laserOn) {
+                btn.style.boxShadow = '0 0 30px var(--accent-red)';
+                btn.innerHTML = 'LASER ATIVO';
+            } else {
+                btn.style.boxShadow = '0 4px 15px var(--accent-red-glow)';
+                btn.innerHTML = 'ON/OFF Laser';
+            }
+            console.log('Laser: ' + (laserOn ? 'ON' : 'OFF'));
+        }
+
+        function irCidade(cidade) {
+            console.log('Movendo para cidade: ' + cidade);
+            // Simulação de alteração de slider ao ir para cidade
+            if(cidade === 'curitiba') {
+                document.getElementById('p').value = 45.5;
+                document.getElementById('t').value = 120.2;
+            }
+            updateDisplays();
+        }
+
+        function salvarCalibracao() {
+            const canto = document.getElementById('canto').value;
+            const pan = document.getElementById('p').value;
+            const tilt = document.getElementById('t').value;
+            console.log('Salvando calibração: ' + canto + ' -> Pan: ' + pan + ', Tilt: ' + tilt);
+            
+            const btn = document.querySelector('.btn-green');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'SALVO COM SUCESSO!';
+            setTimeout(() => btn.innerHTML = originalText, 2000);
+        }
+
+        // Inicializar displays
+        window.onload = updateDisplays;
+    </script>
+</body>
+</html>
