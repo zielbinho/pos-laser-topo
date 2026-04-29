@@ -392,27 +392,37 @@
 
         <!-- Col 3: Actions & Calibration -->
         <div class="right-column">
+            <section class="card">
+                <h2 class="card-title">Atalhos de Cantos</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SE')">SE (Noroeste)</button>
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SD')">SD (Nordeste)</button>
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('IE')">IE (Sudoeste)</button>
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('ID')">ID (Sudeste)</button>
+                </div>
+            </section>
+        
             <section class="card" style="flex: 1;">
-                <h2 class="card-title">Ações Rápidas</h2>
+                <h2 class="card-title">Cidades Salvas</h2>
                 <div class="control-group">
-                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">IR PARA CIDADE</label>
-                    <select id="cidades" onchange="irCidade(this.value)">
-                        <option value="" disabled selected>Selecionar destino...</option>
-                        <option value="curitiba">Curitiba</option>
-                        <option value="ponta_grossa">Ponta Grossa</option>
-                        <option value="cascavel">Cascavel</option>
-                        <option value="londrina">Londrina</option>
-                        <option value="maringa">Maringá</option>
-                        <option value="foz_iguacu">Foz do Iguaçu</option>
+                    <select id="cidades" onchange="irCidadeSelecionada(this.value)">
+                        <option value="" disabled selected>Carregando cidades...</option>
                     </select>
                 </div>
-                <button class="btn-laser" onclick="toggleLaser()">ON/OFF LASER</button>
+                
+                <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">SALVAR POSIÇÃO ATUAL</label>
+                    <input type="text" id="nome-cidade" placeholder="Nome da cidade" 
+                           style="width:100%; background:#121212; border:1px solid #444; color:white; padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <button class="btn-save" onclick="salvarAtualComoCidade()">CADASTRAR CIDADE</button>
+                </div>
+                
+                <button class="btn-laser" style="margin-top:20px" onclick="toggleLaser()">ON/OFF LASER</button>
             </section>
-
-            <section class="card" style="flex: 1;">
-                <h2 class="card-title">Calibração</h2>
+        
+            <section class="card">
+                <h2 class="card-title">Calibração de Cantos</h2>
                 <div class="control-group">
-                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">REFERÊNCIA</label>
                     <select id="canto">
                         <option value="SE">Superior Esquerdo (NW)</option>
                         <option value="SD">Superior Direito (NE)</option>
@@ -420,7 +430,7 @@
                         <option value="ID">Inferior Direito (SE)</option>
                     </select>
                 </div>
-                <button class="btn-save" onclick="salvarCalibracao()">SALVAR POSIÇÃO</button>
+                <button class="btn-save" onclick="salvarCalibracao()">DEFINIR CANTO</button>
             </section>
         </div>
     </main>
