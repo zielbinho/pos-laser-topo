@@ -314,6 +314,52 @@
             margin-top: auto;
         }
 
+        /* Tela de Login */
+        #login-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+
+        .login-box {
+            background: var(--card);
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.2);
+            width: 100%;
+            max-width: 350px;
+            text-align: center;
+        }
+
+        .login-box input {
+            width: 100%;
+            background: #121212;
+            border: 1px solid #444;
+            color: white;
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .login-box input:focus {
+            border-color: var(--neon-blue);
+        }
+
+        /* Container principal escondido no início */
+        #app-content {
+            display: none; 
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
         /* Responsive Design */
         @media (max-width: 1100px) {
             .dashboard-grid {
