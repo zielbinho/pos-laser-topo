@@ -388,27 +388,37 @@
         </section>
 
         <div class="right-column">
+            <section class="card">
+                <h2 class="card-title">Atalhos de Cantos</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SE')">SE (Noroeste)</button>
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SD')">SD (Nordeste)</button>
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('IE')">IE (Sudoeste)</button>
+                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('ID')">ID (Sudeste)</button>
+                </div>
+            </section>
+        
             <section class="card" style="flex: 1;">
-                <h2 class="card-title">Ações Rápidas</h2>
+                <h2 class="card-title">Cidades Salvas</h2>
                 <div class="control-group">
-                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">IR PARA CIDADE</label>
-                    <select id="cidades" onchange="irCidade(this.value)">
-                        <option value="" disabled selected>Selecionar destino...</option>
-                        <option value="80.5,67.2">Curitiba</option>
-                        <option value="57.1,80.8">Ponta Grossa</option>
-                        <option value="46.3,63.0">Cascavel</option>
-                        <option value="76.8,50.4">Londrina</option>
-                        <option value="85.0,90.0">Maringá</option>
-                        <option value="30.0,40.0">Foz do Iguaçu</option>
+                    <select id="cidades" onchange="irCidadeSelecionada(this.value)">
+                        <option value="" disabled selected>Carregando cidades...</option>
                     </select>
                 </div>
-                <button class="btn-laser" onclick="toggleLaser()">ON/OFF LASER</button>
+                
+                <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">SALVAR POSIÇÃO ATUAL</label>
+                    <input type="text" id="nome-cidade" placeholder="Nome da cidade" 
+                           style="width:100%; background:#121212; border:1px solid #444; color:white; padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <button class="btn-save" onclick="salvarAtualComoCidade()">CADASTRAR CIDADE</button>
+                </div>
+                
+                <button class="btn-laser" style="margin-top:20px" onclick="toggleLaser()">ON/OFF LASER</button>
             </section>
-
-            <section class="card" style="flex: 1;">
-                <h2 class="card-title">Calibração</h2>
+        
+            <section class="card">
+                <h2 class="card-title">Calibração de Cantos</h2>
                 <div class="control-group">
-                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">REFERÊNCIA</label>
                     <select id="canto">
                         <option value="SE">Superior Esquerdo (NW)</option>
                         <option value="SD">Superior Direito (NE)</option>
@@ -416,55 +426,98 @@
                         <option value="ID">Inferior Direito (SE)</option>
                     </select>
                 </div>
-                <button class="btn-save" onclick="salvarCalibracao()">SALVAR POSIÇÃO</button>
+                <button class="btn-save" onclick="salvarCalibracao()">DEFINIR CANTO</button>
             </section>
         </div>
     </main>
 
     <script>
-        // --- CONFIGURAÇÕES DO FIREBASE ---
         const DB_URL = "https://pos-laser-topo-default-rtdb.firebaseio.com";
         const SECRET = "WYfZtz6PG4PIKDjonDRx36GghcS9cv10NSBkqD0b";
         
-        let calib = { pSE: 67, tSE: 102, pSD: 122, tSD: 102, pIE: 63, tIE: 45, pID: 123, tID: 43 };
+        let calib = { pSE: 90, tSE: 90, pSD: 90, tSD: 90, pIE: 90, tIE: 90, pID: 90, tID: 90 };
         let laserLigado = false;
-
-        // Atualiza os números na tela
-        function updateDisplays() {
-            const panVal = document.getElementById('p').value;
-            const tiltVal = document.getElementById('t').value;
-            document.getElementById('vP').innerText = parseFloat(panVal).toFixed(1) + '°';
-            document.getElementById('vT').innerText = parseFloat(tiltVal).toFixed(1) + '°';
-        }
-
-        // --- FUNÇÕES DE NUVEM ---
-
-        // Carrega calibração salva
-        async function carregarBanco() {
-            try {
-                let req = await fetch(`${DB_URL}/calibracao.json?auth=${SECRET}`);
-                let dados = await req.json();
-                if(dados) calib = { ...calib, ...dados };
-                document.getElementById('st').innerText = "STATUS: ONLINE E SINCRONIZADO";
-                document.getElementById('status-dot').style.background = "var(--neon-green)";
-            } catch(e) {
-                document.getElementById('st').innerText = "STATUS: ERRO DE CONEXÃO";
-                document.getElementById('status-dot').style.background = "var(--neon-red)";
-            }
-        }
-
-        // Manda o motor mover
+        
+        // --- FUNÇÕES DE MOVIMENTO ---
+        
         async function enviarComando(pan, tilt, laser = laserLigado) {
             document.getElementById('st').innerText = `MOVENDO: ${pan.toFixed(1)}° / ${tilt.toFixed(1)}°`;
             await fetch(`${DB_URL}/comando.json?auth=${SECRET}`, {
                 method: 'PATCH',
                 body: JSON.stringify({ pan: pan, tilt: tilt, laser: laser })
             });
-            setTimeout(() => { document.getElementById('st').innerText = "STATUS: ONLINE E SINCRONIZADO"; }, 1500);
         }
-
-        // --- INTERAÇÕES DO USUÁRIO ---
-
+        
+        function irCanto(canto) {
+            const p = calib["p" + canto];
+            const t = calib["t" + canto];
+            document.getElementById('p').value = p;
+            document.getElementById('t').value = t;
+            updateDisplays();
+            enviarComando(p, t);
+        }
+        
+        // --- GESTÃO DE CIDADES NO BANCO ---
+        
+        async function carregarCidades() {
+            const res = await fetch(`${DB_URL}/cidades.json?auth=${SECRET}`);
+            const cidades = await res.json();
+            const select = document.getElementById('cidades');
+            select.innerHTML = '<option value="" disabled selected>Selecionar destino...</option>';
+            
+            if (cidades) {
+                Object.keys(cidades).forEach(nome => {
+                    const opt = document.createElement('option');
+                    opt.value = `${cidades[nome].p},${cidades[nome].t}`;
+                    opt.innerHTML = nome;
+                    select.appendChild(opt);
+                });
+            }
+        }
+        
+        function irCidadeSelecionada(coordsStr) {
+            if (!coordsStr) return;
+            const [p, t] = coordsStr.split(',').map(Number);
+            document.getElementById('p').value = p;
+            document.getElementById('t').value = t;
+            updateDisplays();
+            if (!laserLigado) toggleLaser();
+            enviarComando(p, t, true);
+        }
+        
+        async function salvarAtualComoCidade() {
+            const nome = document.getElementById('nome-cidade').value.trim();
+            if (!nome) return alert("Digite o nome da cidade!");
+            
+            const p = parseFloat(document.getElementById('p').value);
+            const t = parseFloat(document.getElementById('t').value);
+        
+            await fetch(`${DB_URL}/cidades/${nome}.json?auth=${SECRET}`, {
+                method: 'PUT',
+                body: JSON.stringify({ p: p, t: t })
+            });
+        
+            document.getElementById('nome-cidade').value = "";
+            alert("Cidade salva no banco!");
+            carregarCidades(); // Recarrega a lista
+        }
+        
+        // --- CALIBRAÇÃO E BOOT ---
+        
+        async function carregarCalibracao() {
+            const req = await fetch(`${DB_URL}/calibracao.json?auth=${SECRET}`);
+            const dados = await req.json();
+            if(dados) calib = { ...calib, ...dados };
+            document.getElementById('st').innerText = "STATUS: ONLINE";
+        }
+        
+        function updateDisplays() {
+            const panVal = document.getElementById('p').value;
+            const tiltVal = document.getElementById('t').value;
+            document.getElementById('vP').innerText = parseFloat(panVal).toFixed(1) + '°';
+            document.getElementById('vT').innerText = parseFloat(tiltVal).toFixed(1) + '°';
+        }
+        
         function cliqueMapa(event) {
             const mapa = document.getElementById('mapa');
             const pointer = document.getElementById('laser-pointer');
@@ -527,63 +580,11 @@
             const tilt = parseFloat(document.getElementById('t').value);
             enviarComando(pan, tilt, laserLigado);
         }
-
-        function irCidade(valores) {
-            if(!valores) return;
-            const coords = valores.split(',');
-            const pan = parseFloat(coords[0]);
-            const tilt = parseFloat(coords[1]);
-            
-            document.getElementById('p').value = pan;
-            document.getElementById('t').value = tilt;
-            
-            updateDisplays();
-            if(!laserLigado) toggleLaser();
-            enviarComando(pan, tilt, true);
-        }
-
-        async function salvarCalibracao() {
-            const canto = document.getElementById('canto').value;
-            const pan = parseFloat(document.getElementById('p').value);
-            const tilt = parseFloat(document.getElementById('t').value);
-            
-            const btn = document.querySelector('.btn-save'); // Corrigido a classe da IA
-            btn.innerHTML = 'SALVANDO...';
-
-            let dados = {};
-            dados["p" + canto] = pan;
-            dados["t" + canto] = tilt;
-
-            try {
-                await fetch(`${DB_URL}/calibracao.json?auth=${SECRET}`, {
-                    method: 'PATCH',
-                    body: JSON.stringify(dados)
-                });
-                
-                calib["p" + canto] = pan;
-                calib["t" + canto] = tilt;
-                
-                btn.innerHTML = 'SALVO COM SUCESSO!';
-                btn.style.background = 'var(--neon-green)';
-                btn.style.color = 'black';
-            } catch(e) {
-                btn.innerHTML = 'ERRO AO SALVAR';
-                btn.style.borderColor = 'var(--neon-red)';
-                btn.style.color = 'var(--neon-red)';
-            }
-
-            setTimeout(() => { 
-                btn.innerHTML = 'SALVAR POSIÇÃO'; 
-                btn.style.background = 'transparent';
-                btn.style.color = 'var(--neon-green)';
-                btn.style.borderColor = 'var(--neon-green)';
-            }, 2500);
-        }
-
-        // Inicializar
+        
         window.onload = () => {
             updateDisplays();
-            carregarBanco();
+            carregarCalibracao();
+            carregarCidades();
         };
     </script>
 </body>
