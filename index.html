@@ -386,103 +386,139 @@
     </style>
 </head>
 <body>
-
-    <header>
-        <div>
-            <h1>CONTROLE LASER GPS <span style="color:var(--neon-blue)">— PARANÁ</span></h1>
+    <div id="login-screen">
+        <div class="login-box">
+            <h2 style="color: white; margin-bottom: 20px;">ACESSO RESTRITO</h2>
+            <input type="text" id="login-user" placeholder="Usuário">
+            <input type="password" id="login-pass" placeholder="Senha">
+            <button class="btn-laser" style="background: var(--neon-blue); box-shadow: 0 4px 15px rgba(0,212,255,0.3);" onclick="fazerLogin()">ENTRAR NO SISTEMA</button>
+            <p id="login-erro" style="color: var(--neon-red); font-size: 12px; margin-top: 15px; display: none;">Credenciais incorretas!</p>
         </div>
-        <div class="status-badge">
-            <div class="status-dot" id="status-dot"></div>
-            <span id="st">CONECTANDO NUVEM...</span>
-        </div>
-    </header>
+    </div>
 
-    <main class="dashboard-grid">
-        <section class="card">
-            <h2 class="card-title">Controles Manuais</h2>
+    <div id="app-content">
+        <header>
+            <div>
+                <h1>CONTROLE LASER GPS <span style="color:var(--neon-blue)">— PARANÁ</span></h1>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot" id="status-dot"></div>
+                <span id="st">CONECTANDO NUVEM...</span>
+            </div>
+        </header>
+
+        <main class="dashboard-grid">
+            <section class="card">
+                <h2 class="card-title">Controles Manuais</h2>
+                
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>PAN (Eixo X)</span>
+                        <span id="vP">90.0°</span>
+                    </div>
+                    <input type="range" id="p" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
+                </div>
+    
+                <div class="control-group">
+                    <div class="control-label">
+                        <span>TILT (Eixo Y)</span>
+                        <span id="vT">90.0°</span>
+                    </div>
+                    <input type="range" id="t" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
+                </div>
+    
+                <p class="info-text">
+                    Ajuste os servos manualmente para calibração fina ou inspeção visual de coordenadas específicas.
+                </p>
+            </section>
+    
+            <section class="card map-container-card">
+                <div id="mapa" onclick="cliqueMapa(event)">
+                    <div class="radar-sweep"></div>
+                    <div id="laser-pointer" class="map-point" style="display: none;"></div>
+                    
+                    <div style="position:absolute; bottom:20px; left:20px; font-family:var(--font-mono); font-size:10px; color:rgba(255,255,255,0.2); pointer-events:none;">
+                        RADAR GRID: SCALE 1:1000<br>VAR: PR_MAP_COORD
+                    </div>
+                </div>
+            </section>
+    
+            <div class="right-column">
+                <section class="card">
+                    <h2 class="card-title">Atalhos de Cantos</h2>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SE')">SE (Noroeste)</button>
+                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SD')">SD (Nordeste)</button>
+                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('IE')">IE (Sudoeste)</button>
+                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('ID')">ID (Sudeste)</button>
+                    </div>
+                </section>
             
-            <div class="control-group">
-                <div class="control-label">
-                    <span>PAN (Eixo X)</span>
-                    <span id="vP">90.0°</span>
-                </div>
-                <input type="range" id="p" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
+                <section class="card" style="flex: 1;">
+                    <h2 class="card-title">Cidades Salvas</h2>
+                    <div class="control-group">
+                        <select id="cidades" onchange="irCidadeSelecionada(this.value)">
+                            <option value="" disabled selected>Carregando cidades...</option>
+                        </select>
+                    </div>
+                    
+                    <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
+                        <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">SALVAR POSIÇÃO ATUAL</label>
+                        <input type="text" id="nome-cidade" placeholder="Nome da cidade" 
+                               style="width:100%; background:#121212; border:1px solid #444; color:white; padding:10px; border-radius:8px; margin-bottom:10px;">
+                        <button class="btn-save" onclick="salvarAtualComoCidade()">CADASTRAR CIDADE</button>
+                    </div>
+                    
+                    <button class="btn-laser" style="margin-top:20px" onclick="toggleLaser()">ON/OFF LASER</button>
+                </section>
+            
+                <section class="card">
+                    <h2 class="card-title">Calibração de Cantos</h2>
+                    <div class="control-group">
+                        <select id="canto">
+                            <option value="SE">Superior Esquerdo (NW)</option>
+                            <option value="SD">Superior Direito (NE)</option>
+                            <option value="IE">Inferior Esquerdo (SW)</option>
+                            <option value="ID">Inferior Direito (SE)</option>
+                        </select>
+                    </div>
+                    <button class="btn-save" onclick="salvarCalibracao()">DEFINIR CANTO</button>
+                </section>
             </div>
-
-            <div class="control-group">
-                <div class="control-label">
-                    <span>TILT (Eixo Y)</span>
-                    <span id="vT">90.0°</span>
-                </div>
-                <input type="range" id="t" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
-            </div>
-
-            <p class="info-text">
-                Ajuste os servos manualmente para calibração fina ou inspeção visual de coordenadas específicas.
-            </p>
-        </section>
-
-        <section class="card map-container-card">
-            <div id="mapa" onclick="cliqueMapa(event)">
-                <div class="radar-sweep"></div>
-                <div id="laser-pointer" class="map-point" style="display: none;"></div>
-                
-                <div style="position:absolute; bottom:20px; left:20px; font-family:var(--font-mono); font-size:10px; color:rgba(255,255,255,0.2); pointer-events:none;">
-                    RADAR GRID: SCALE 1:1000<br>VAR: PR_MAP_COORD
-                </div>
-            </div>
-        </section>
-
-        <div class="right-column">
-            <section class="card">
-                <h2 class="card-title">Atalhos de Cantos</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SE')">SE (Noroeste)</button>
-                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SD')">SD (Nordeste)</button>
-                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('IE')">IE (Sudoeste)</button>
-                    <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('ID')">ID (Sudeste)</button>
-                </div>
-            </section>
-        
-            <section class="card" style="flex: 1;">
-                <h2 class="card-title">Cidades Salvas</h2>
-                <div class="control-group">
-                    <select id="cidades" onchange="irCidadeSelecionada(this.value)">
-                        <option value="" disabled selected>Carregando cidades...</option>
-                    </select>
-                </div>
-                
-                <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
-                    <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">SALVAR POSIÇÃO ATUAL</label>
-                    <input type="text" id="nome-cidade" placeholder="Nome da cidade" 
-                           style="width:100%; background:#121212; border:1px solid #444; color:white; padding:10px; border-radius:8px; margin-bottom:10px;">
-                    <button class="btn-save" onclick="salvarAtualComoCidade()">CADASTRAR CIDADE</button>
-                </div>
-                
-                <button class="btn-laser" style="margin-top:20px" onclick="toggleLaser()">ON/OFF LASER</button>
-            </section>
-        
-            <section class="card">
-                <h2 class="card-title">Calibração de Cantos</h2>
-                <div class="control-group">
-                    <select id="canto">
-                        <option value="SE">Superior Esquerdo (NW)</option>
-                        <option value="SD">Superior Direito (NE)</option>
-                        <option value="IE">Inferior Esquerdo (SW)</option>
-                        <option value="ID">Inferior Direito (SE)</option>
-                    </select>
-                </div>
-                <button class="btn-save" onclick="salvarCalibracao()">DEFINIR CANTO</button>
-            </section>
-        </div>
-    </main>
-
+        </main>
+    </div>
+    
     <script>
         const DB_URL = "https://pos-laser-topo-default-rtdb.firebaseio.com";
         const SECRET = "WYfZtz6PG4PIKDjonDRx36GghcS9cv10NSBkqD0b";
         
         let calib = { pSE: 90, tSE: 90, pSD: 90, tSD: 90, pIE: 90, tIE: 90, pID: 90, tID: 90 };
         let laserLigado = false;
+
+        function fazerLogin() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+
+            // Defina seu usuário e senha aqui!
+            if (user === "admin" && pass === "laser123") {
+                // Esconde a tela de login
+                document.getElementById('login-screen').style.display = "none";
+                // Mostra o painel
+                document.getElementById('app-content').style.display = "flex";
+                
+                // Agora sim, liga os motores e conecta no banco!
+                iniciarSistema();
+            } else {
+                document.getElementById('login-erro').style.display = "block";
+            }
+        }
+
+        // Função para dar o "Start" no painel
+        function iniciarSistema() {
+            updateDisplays();
+            carregarCalibracao();
+            carregarCidades();
+        }
         
         // --- FUNÇÕES DE MOVIMENTO ---
         
@@ -628,9 +664,7 @@
         }
         
         window.onload = () => {
-            updateDisplays();
-            carregarCalibracao();
-            carregarCidades();
+            
         };
     </script>
 </body>
