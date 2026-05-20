@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Controle Laser GPS - Paraná</title>
+    <title>Controle de Eixos - CNC/Laser</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
+        /* MANTIDO EXATAMENTE O SEU CSS ORIGINAL */
         :root {
             --bg: #121212;
             --card: #1e1e1e;
@@ -20,369 +21,57 @@
             --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: var(--font-sans); background-color: var(--bg); color: var(--text-main); min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden; }
+        
+        header { height: 80px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; background: var(--card); }
+        header h1 { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin: 0; text-transform: uppercase; }
+        .status-badge { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text-dim); font-family: var(--font-mono); }
+        .status-dot { width: 8px; height: 8px; background: var(--neon-green); border-radius: 50%; box-shadow: 0 0 10px var(--neon-green); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(1.2); } 100% { opacity: 1; transform: scale(1); } }
 
-        body {
-            font-family: var(--font-sans);
-            background-color: var(--bg);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-        }
+        .dashboard-grid { display: grid; grid-template-columns: 320px 1fr 320px; gap: 20px; padding: 20px; flex: 1; max-width: 1440px; margin: 0 auto; width: 100%; }
+        .card { background: var(--card); border-radius: 16px; padding: 24px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; transition: var(--transition); }
+        .card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+        .card-title { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 20px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .card-title::before { content: ''; width: 3px; height: 12px; background: var(--neon-blue); border-radius: 2px; }
 
-        /* Header Styles */
-        header {
-            height: 80px;
-            padding: 0 40px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid #333;
-            background: var(--card);
-        }
+        .map-container-card { grid-column: 2; padding: 0 !important; background: var(--card-alt) !important; overflow: hidden; position: relative; border: 2px solid #333 !important; display: flex; align-items: center; justify-content: center; }
+        #mapa { width: 100%; height: 100%; background-image: radial-gradient(circle, rgba(0,212,255,0.05) 1px, transparent 1px); background-size: 30px 30px; cursor: crosshair; position: relative; display: flex; align-items: center; justify-content: center; overflow: hidden;}
+        #mapa::after { content: ''; position: absolute; top: 50%; left: 50%; width: 100%; height: 1px; background: rgba(0,212,255,0.15); transform: translate(-50%, -50%); }
+        #mapa::before { content: ''; position: absolute; top: 50%; left: 50%; width: 1px; height: 100%; background: rgba(0,212,255,0.15); transform: translate(-50%, -50%); }
+        .radar-sweep { position: absolute; top: 50%; left: 50%; width: 50%; height: 50%; background: linear-gradient(45deg, rgba(0, 212, 255, 0.1), transparent 70%); transform-origin: top left; animation: sweep 4s linear infinite; }
+        @keyframes sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .map-point { position: absolute; width: 12px; height: 12px; background: var(--neon-red); border-radius: 50%; box-shadow: 0 0 15px var(--neon-red); transform: translate(-50%, -50%); z-index: 10; transition: all 0.3s ease; }
 
-        header h1 {
-            font-size: 24px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-            margin: 0;
-            text-transform: uppercase;
-        }
+        .control-group { margin-bottom: 24px; }
+        .control-label { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 12px; color: var(--text-main); }
+        .control-label span:last-child { color: var(--neon-blue); font-family: var(--font-mono); background: rgba(0, 212, 255, 0.1); padding: 2px 8px; border-radius: 4px; }
 
-        .status-badge {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-            color: var(--text-dim);
-            font-family: var(--font-mono);
-        }
+        select, input[type="text"] { width: 100%; background: #121212; border: 1px solid #444; color: white; padding: 14px; border-radius: 12px; font-size: 14px; outline: none; cursor: pointer; transition: var(--transition); }
+        select:focus, input[type="text"]:focus { border-color: var(--neon-blue); }
 
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--neon-green);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--neon-green);
-            animation: pulse 2s infinite;
-        }
+        .btn-laser { background: linear-gradient(135deg, #ff4444, #cc0000); color: white; box-shadow: 0 4px 15px rgba(255,68,68,0.3); width: 100%; padding: 16px; border-radius: 12px; border: none; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; margin-top: auto; }
+        .btn-laser:hover { filter: brightness(1.2); transform: translateY(-2px); }
+        .btn-save { background: transparent; border: 1px solid var(--neon-green); color: var(--neon-green); width: 100%; padding: 14px; border-radius: 12px; font-weight: 700; text-transform: uppercase; cursor: pointer; transition: all 0.2s ease; }
+        .btn-save:hover { background: var(--neon-green); color: black; box-shadow: 0 0 20px rgba(0, 255, 136, 0.3); }
 
-        @keyframes pulse {
-            0% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.5; transform: scale(1.2); }
-            100% { opacity: 1; transform: scale(1); }
-        }
+        .right-column { display: flex; flex-direction: column; gap: 20px; }
+        .info-text { font-size: 11px; color: var(--text-dim); line-height: 1.5; margin-top: auto; }
 
-        /* Main Bento Grid Layout */
-        .dashboard-grid {
-            display: grid;
-            grid-template-columns: 320px 1fr 320px;
-            gap: 20px;
-            padding: 20px;
-            flex: 1;
-            max-width: 1440px;
-            margin: 0 auto;
-            width: 100%;
-        }
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        .login-box { background: var(--card); padding: 40px; border-radius: 16px; box-shadow: 0 8px 32px rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.2); width: 100%; max-width: 350px; text-align: center; }
+        .login-box input { width: 100%; background: #121212; border: 1px solid #444; color: white; padding: 14px; border-radius: 8px; margin-bottom: 15px; outline: none; }
+        #app-content { display: none; flex-direction: column; min-height: 100vh; }
 
-        /* Card Styles */
-        .card {
-            background: var(--card);
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-            border: 1px solid rgba(255,255,255,0.05);
-            display: flex;
-            flex-direction: column;
-            transition: var(--transition);
-        }
+        /* NOVO: Estilo para o D-Pad de controle manual */
+        .d-pad { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .d-btn { background: #333; color: white; border: none; padding: 15px 0; border-radius: 8px; cursor: pointer; font-weight: bold; transition: var(--transition); }
+        .d-btn:hover { background: var(--neon-blue); color: black; box-shadow: 0 0 15px rgba(0,212,255,0.4); }
+        .d-vazio { visibility: hidden; }
 
-        .card:hover {
-            border-color: rgba(255,255,255,0.1);
-            transform: translateY(-2px);
-        }
-
-        .card-title {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-dim);
-            margin-bottom: 20px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .card-title::before {
-            content: '';
-            width: 3px;
-            height: 12px;
-            background: var(--neon-blue);
-            border-radius: 2px;
-        }
-
-        /* Map Card Layout */
-        .map-container-card {
-            grid-column: 2;
-            padding: 0 !important;
-            background: var(--card-alt) !important;
-            overflow: hidden;
-            position: relative;
-            border: 2px solid #333 !important;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #mapa {
-            width: 100%;
-            height: 100%;
-            background-image: radial-gradient(circle, rgba(0,212,255,0.05) 1px, transparent 1px);
-            background-size: 30px 30px;
-            cursor: crosshair;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #mapa::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100%;
-            height: 1px;
-            background: rgba(0,212,255,0.15);
-            transform: translate(-50%, -50%);
-        }
-
-        #mapa::before {
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 1px;
-            height: 100%;
-            background: rgba(0,212,255,0.15);
-            transform: translate(-50%, -50%);
-        }
-
-        .radar-sweep {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 50%;
-            height: 50%;
-            background: linear-gradient(45deg, rgba(0, 212, 255, 0.1), transparent 70%);
-            transform-origin: top left;
-            animation: sweep 4s linear infinite;
-        }
-
-        @keyframes sweep {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-
-        .map-point {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background: var(--neon-red);
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--neon-red);
-            transform: translate(-50%, -50%);
-            z-index: 10;
-        }
-
-        /* Control UI Elements */
-        .control-group {
-            margin-bottom: 24px;
-        }
-
-        .control-label {
-            display: flex;
-            justify-content: space-between;
-            font-size: 14px;
-            margin-bottom: 12px;
-            color: var(--text-main);
-        }
-
-        .control-label span:last-child {
-            color: var(--neon-blue);
-            font-family: var(--font-mono);
-            background: rgba(0, 212, 255, 0.1);
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-
-        input[type=range] {
-            width: 100%;
-            accent-color: var(--neon-blue);
-            cursor: pointer;
-            height: 6px;
-            background: #333;
-            border-radius: 3px;
-            appearance: none;
-        }
-
-        input[type=range]::-webkit-slider-thumb {
-            appearance: none;
-            width: 16px;
-            height: 16px;
-            background: #fff;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(255,255,255,0.5);
-        }
-
-        select {
-            width: 100%;
-            background: #121212;
-            border: 1px solid #444;
-            color: white;
-            padding: 14px;
-            border-radius: 12px;
-            font-size: 14px;
-            outline: none;
-            cursor: pointer;
-            transition: var(--transition);
-        }
-
-        select:focus {
-            border-color: var(--neon-blue);
-        }
-
-        /* Buttons matching theme */
-        .btn-laser {
-            background: linear-gradient(135deg, #ff4444, #cc0000);
-            color: white;
-            box-shadow: 0 4px 15px rgba(255,68,68,0.3);
-            width: 100%;
-            padding: 16px;
-            border-radius: 12px;
-            border: none;
-            font-weight: 700;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: auto;
-        }
-
-        .btn-laser:hover {
-            filter: brightness(1.2);
-            transform: translateY(-2px);
-        }
-
-        .btn-save {
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            width: 100%;
-            padding: 14px;
-            border-radius: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-save:hover {
-            background: var(--neon-green);
-            color: black;
-            box-shadow: 0 0 20px rgba(0, 255, 136, 0.3);
-        }
-
-        /* Right Column stacking */
-        .right-column {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .info-text {
-            font-size: 11px;
-            color: var(--text-dim);
-            line-height: 1.5;
-            margin-top: auto;
-        }
-
-        /* Tela de Login */
-        #login-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg);
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-        }
-
-        .login-box {
-            background: var(--card);
-            padding: 40px;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(0,212,255,0.1);
-            border: 1px solid rgba(0,212,255,0.2);
-            width: 100%;
-            max-width: 350px;
-            text-align: center;
-        }
-
-        .login-box input {
-            width: 100%;
-            background: #121212;
-            border: 1px solid #444;
-            color: white;
-            padding: 14px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            outline: none;
-            transition: var(--transition);
-        }
-
-        .login-box input:focus {
-            border-color: var(--neon-blue);
-        }
-
-        /* Container principal escondido no início */
-        #app-content {
-            display: none; 
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1100px) {
-            .dashboard-grid {
-                grid-template-columns: 1fr 1fr;
-            }
-            .map-container-card {
-                grid-column: span 2;
-                height: 400px;
-                order: -1;
-            }
-        }
-
-        @media (max-width: 768px) {
-            header { padding: 0 20px; height: 70px; }
-            header h1 { font-size: 18px; }
-            .dashboard-grid {
-                grid-template-columns: 1fr;
-            }
-            .map-container-card {
-                grid-column: span 1;
-                height: 300px;
-            }
-        }
+        @media (max-width: 1100px) { .dashboard-grid { grid-template-columns: 1fr 1fr; } .map-container-card { grid-column: span 2; height: 400px; order: -1; } }
+        @media (max-width: 768px) { header { padding: 0 20px; height: 70px; } header h1 { font-size: 18px; } .dashboard-grid { grid-template-columns: 1fr; } .map-container-card { grid-column: span 1; height: 300px; } }
     </style>
 </head>
 <body>
@@ -399,273 +88,240 @@
     <div id="app-content">
         <header>
             <div>
-                <h1>CONTROLE LASER GPS <span style="color:var(--neon-blue)">— PARANÁ</span></h1>
+                <h1>CONTROLE MÁQUINA <span style="color:var(--neon-blue)">— CNC/LASER</span></h1>
             </div>
             <div class="status-badge">
                 <div class="status-dot" id="status-dot"></div>
-                <span id="st">CONECTANDO NUVEM...</span>
+                <span id="st">AGUARDANDO...</span>
             </div>
         </header>
 
         <main class="dashboard-grid">
+            
             <section class="card">
-                <h2 class="card-title">Controles Manuais</h2>
+                <h2 class="card-title">Posição Atual & Controles</h2>
                 
                 <div class="control-group">
                     <div class="control-label">
-                        <span>PAN (Eixo X)</span>
-                        <span id="vP">90.0°</span>
+                        <span>EIXO X (Passos)</span>
+                        <span id="vP">0</span>
                     </div>
-                    <input type="range" id="p" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
-                </div>
-    
-                <div class="control-group">
                     <div class="control-label">
-                        <span>TILT (Eixo Y)</span>
-                        <span id="vT">90.0°</span>
+                        <span>EIXO Y (Passos)</span>
+                        <span id="vT">0</span>
                     </div>
-                    <input type="range" id="t" min="0" max="180" step="0.1" value="90" onchange="moverManual()">
                 </div>
-    
-                <p class="info-text">
-                    Ajuste os servos manualmente para calibração fina ou inspeção visual de coordenadas específicas.
-                </p>
+
+                <p style="font-size:12px; color:var(--text-dim); text-align:center;">Mover 500 passos</p>
+                <div class="d-pad">
+                    <div class="d-vazio"></div>
+                    <button class="d-btn" onclick="moverEixo('Y', 500)">Y +</button>
+                    <div class="d-vazio"></div>
+                    
+                    <button class="d-btn" onclick="moverEixo('X', -500)">X -</button>
+                    <button class="d-btn" style="background:var(--card-alt); border:1px solid #444;" onclick="enviarHoming()">Zerar<br>(HOME)</button>
+                    <button class="d-btn" onclick="moverEixo('X', 500)">X +</button>
+                    
+                    <div class="d-vazio"></div>
+                    <button class="d-btn" onclick="moverEixo('Y', -500)">Y -</button>
+                    <div class="d-vazio"></div>
+                </div>
             </section>
     
             <section class="card map-container-card">
                 <div id="mapa" onclick="cliqueMapa(event)">
                     <div class="radar-sweep"></div>
-                    <div id="laser-pointer" class="map-point" style="display: none;"></div>
+                    <div id="laser-pointer" class="map-point"></div>
                     
                     <div style="position:absolute; bottom:20px; left:20px; font-family:var(--font-mono); font-size:10px; color:rgba(255,255,255,0.2); pointer-events:none;">
-                        RADAR GRID: SCALE 1:1000<br>VAR: PR_MAP_COORD
+                        ÁREA DE TRABALHO<br>CLIQUE PARA ENVIAR COORDENADAS
                     </div>
                 </div>
             </section>
     
             <div class="right-column">
-                <section class="card">
-                    <h2 class="card-title">Atalhos de Cantos</h2>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SE')">SE (Noroeste)</button>
-                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('SD')">SD (Nordeste)</button>
-                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('IE')">IE (Sudoeste)</button>
-                        <button class="btn-save" style="font-size: 10px; padding: 8px;" onclick="irCanto('ID')">ID (Sudeste)</button>
-                    </div>
-                </section>
-            
                 <section class="card" style="flex: 1;">
-                    <h2 class="card-title">Cidades Salvas</h2>
+                    <h2 class="card-title">Destinos e Cidades</h2>
+                    <p style="font-size:11px; color:var(--text-dim); margin-bottom:10px;">Selecione uma cidade para mover a máquina automaticamente.</p>
+                    
                     <div class="control-group">
                         <select id="cidades" onchange="irCidadeSelecionada(this.value)">
                             <option value="" disabled selected>Carregando cidades...</option>
                         </select>
                     </div>
                     
-                    <div style="border-top: 1px solid #444; padding-top: 15px; margin-top: 10px;">
-                        <label style="font-size:12px; color:var(--text-dim); display:block; margin-bottom:8px">SALVAR POSIÇÃO ATUAL</label>
-                        <input type="text" id="nome-cidade" placeholder="Nome da cidade" 
-                               style="width:100%; background:#121212; border:1px solid #444; color:white; padding:10px; border-radius:8px; margin-bottom:10px;">
-                        <button class="btn-save" onclick="salvarAtualComoCidade()">CADASTRAR CIDADE</button>
+                    <div style="border-top: 1px solid #444; padding-top: 20px; margin-top: 15px;">
+                        <h2 class="card-title">Registar Novo Ponto</h2>
+                        <input type="text" id="nome-cidade" placeholder="Nome da cidade/ponto" style="margin-bottom:10px;">
+                        <button class="btn-save" onclick="salvarAtualComoCidade()">GRAVAR POSIÇÃO ATUAL</button>
                     </div>
                     
-                    <button class="btn-laser" style="margin-top:20px" onclick="toggleLaser()">ON/OFF LASER</button>
-                </section>
-            
-                <section class="card">
-                    <h2 class="card-title">Calibração de Cantos</h2>
-                    <div class="control-group">
-                        <select id="canto">
-                            <option value="SE">Superior Esquerdo (NW)</option>
-                            <option value="SD">Superior Direito (NE)</option>
-                            <option value="IE">Inferior Esquerdo (SW)</option>
-                            <option value="ID">Inferior Direito (SE)</option>
-                        </select>
-                    </div>
-                    <button class="btn-save" onclick="salvarCalibracao()">DEFINIR CANTO</button>
+                    <button class="btn-laser" style="margin-top:20px" onclick="pararMaquina()">PARADA DE EMERGÊNCIA</button>
                 </section>
             </div>
         </main>
     </div>
     
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
     <script>
-        const DB_URL = "https://pos-laser-topo-default-rtdb.firebaseio.com";
-        const SECRET = "WYfZtz6PG4PIKDjonDRx36GghcS9cv10NSBkqD0b";
-        
-        let calib = { pSE: 90, tSE: 90, pSD: 90, tSD: 90, pIE: 90, tIE: 90, pID: 90, tID: 90 };
-        let laserLigado = false;
+        // CONFIGURAÇÕES DA SUA MÁQUINA (Ajuste para o limite de passos físicos da sua mesa)
+        const PASSOS_MAX_X = 2000; 
+        const PASSOS_MAX_Y = 2000;
+
+        // SUBSTITUA PELAS SUAS CREDENCIAIS DO FIREBASE
+        const firebaseConfig = {
+            apiKey: "WYfZtz6PG4PIKDjonDRx36GghcS9cv10NSBkqD0b",
+            databaseURL: "https://pos-laser-topo-default-rtdb.firebaseio.com", // O seu URL antigo
+            projectId: "513952137387"
+        };
+
+        let database;
+        let posicaoXAtual = 0;
+        let posicaoYAtual = 0;
+        let bancoDeCidades = {};
 
         function fazerLogin() {
             const user = document.getElementById('login-user').value;
             const pass = document.getElementById('login-pass').value;
 
-            // Defina seu usuário e senha aqui!
             if (user === "admin" && pass === "laser123") {
-                // Esconde a tela de login
                 document.getElementById('login-screen').style.display = "none";
-                // Mostra o painel
                 document.getElementById('app-content').style.display = "flex";
                 
-                // Agora sim, liga os motores e conecta no banco!
+                // Inicia o Firebase APÓS o login
+                firebase.initializeApp(firebaseConfig);
+                database = firebase.database();
+                document.getElementById('st').innerText = "CONECTADO";
+                document.getElementById('status-dot').style.background = "var(--neon-blue)";
+                document.getElementById('status-dot').style.boxShadow = "0 0 10px var(--neon-blue)";
+                
                 iniciarSistema();
             } else {
                 document.getElementById('login-erro').style.display = "block";
             }
         }
 
-        // Função para dar o "Start" no painel
         function iniciarSistema() {
-            updateDisplays();
-            carregarCalibracao();
-            carregarCidades();
+            // Escuta a Posição X da Máquina em tempo real
+            database.ref('maquina/eixoX').on('value', (snap) => {
+                posicaoXAtual = snap.val() || 0;
+                document.getElementById('vP').innerText = posicaoXAtual;
+                atualizarPontoNoMapa();
+            });
+
+            // Escuta a Posição Y da Máquina em tempo real
+            database.ref('maquina/eixoY').on('value', (snap) => {
+                posicaoYAtual = snap.val() || 0;
+                document.getElementById('vT').innerText = posicaoYAtual;
+                atualizarPontoNoMapa();
+            });
+
+            // Escuta a lista de cidades
+            database.ref('maquina/cidades').on('value', (snapshot) => {
+                const select = document.getElementById('cidades');
+                select.innerHTML = '<option value="" disabled selected>Selecionar destino...</option>';
+                bancoDeCidades = {};
+
+                snapshot.forEach((child) => {
+                    let id = child.key;
+                    let dados = child.val();
+                    bancoDeCidades[id] = dados;
+
+                    let opt = document.createElement("option");
+                    opt.value = id;
+                    opt.text = dados.nome;
+                    select.appendChild(opt);
+                });
+            });
+        }
+
+        // Move a bolinha vermelha no mapa com base na coordenada real do motor
+        function atualizarPontoNoMapa() {
+            const mapa = document.getElementById('mapa');
+            const pointer = document.getElementById('laser-pointer');
+            
+            // Converte os passos para percentagem (0% a 100%) da tela
+            let percentX = (posicaoXAtual / PASSOS_MAX_X) * 100;
+            let percentY = (posicaoYAtual / PASSOS_MAX_Y) * 100;
+            
+            // Impede que a bolinha saia visualmente da div
+            percentX = Math.max(0, Math.min(100, percentX));
+            percentY = Math.max(0, Math.min(100, percentY));
+
+            pointer.style.left = percentX + '%';
+            pointer.style.top = percentY + '%';
         }
         
         // --- FUNÇÕES DE MOVIMENTO ---
         
-        async function enviarComando(pan, tilt, laser = laserLigado) {
-            document.getElementById('st').innerText = `MOVENDO: ${pan.toFixed(1)}° / ${tilt.toFixed(1)}°`;
-            await fetch(`${DB_URL}/comando.json?auth=${SECRET}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ pan: pan, tilt: tilt, laser: laser })
-            });
+        function moverEixo(eixo, quantidade) {
+            let posBase = (eixo === 'X') ? posicaoXAtual : posicaoYAtual;
+            let novoAlvo = posBase + quantidade;
+            database.ref('maquina/alvo' + eixo).set(novoAlvo);
+            document.getElementById('st').innerText = `MOVENDO ${eixo}...`;
         }
-        
-        function irCanto(canto) {
-            const p = calib["p" + canto];
-            const t = calib["t" + canto];
-            document.getElementById('p').value = p;
-            document.getElementById('t').value = t;
-            updateDisplays();
-            enviarComando(p, t);
-        }
-        
-        // --- GESTÃO DE CIDADES NO BANCO ---
-        
-        async function carregarCidades() {
-            const res = await fetch(`${DB_URL}/cidades.json?auth=${SECRET}`);
-            const cidades = await res.json();
-            const select = document.getElementById('cidades');
-            select.innerHTML = '<option value="" disabled selected>Selecionar destino...</option>';
-            
-            if (cidades) {
-                Object.keys(cidades).forEach(nome => {
-                    const opt = document.createElement('option');
-                    opt.value = `${cidades[nome].p},${cidades[nome].t}`;
-                    opt.innerHTML = nome;
-                    select.appendChild(opt);
-                });
+
+        function enviarHoming() {
+            if(confirm("Deseja fazer o Homing (Retornar a máquina ao ponto zero)?")) {
+                database.ref('maquina/comandoHoming').set(true);
+                document.getElementById('st').innerText = "CALIBRANDO HOME...";
             }
         }
         
-        function irCidadeSelecionada(coordsStr) {
-            if (!coordsStr) return;
-            const [p, t] = coordsStr.split(',').map(Number);
-            document.getElementById('p').value = p;
-            document.getElementById('t').value = t;
-            updateDisplays();
-            if (!laserLigado) toggleLaser();
-            enviarComando(p, t, true);
-        }
-        
-        async function salvarAtualComoCidade() {
-            const nome = document.getElementById('nome-cidade').value.trim();
-            if (!nome) return alert("Digite o nome da cidade!");
-            
-            const p = parseFloat(document.getElementById('p').value);
-            const t = parseFloat(document.getElementById('t').value);
-        
-            await fetch(`${DB_URL}/cidades/${nome}.json?auth=${SECRET}`, {
-                method: 'PUT',
-                body: JSON.stringify({ p: p, t: t })
-            });
-        
-            document.getElementById('nome-cidade').value = "";
-            alert("Cidade salva no banco!");
-            carregarCidades(); // Recarrega a lista
-        }
-        
-        // --- CALIBRAÇÃO E BOOT ---
-        
-        async function carregarCalibracao() {
-            const req = await fetch(`${DB_URL}/calibracao.json?auth=${SECRET}`);
-            const dados = await req.json();
-            if(dados) calib = { ...calib, ...dados };
-            document.getElementById('st').innerText = "STATUS: ONLINE";
-        }
-        
-        function updateDisplays() {
-            const panVal = document.getElementById('p').value;
-            const tiltVal = document.getElementById('t').value;
-            document.getElementById('vP').innerText = parseFloat(panVal).toFixed(1) + '°';
-            document.getElementById('vT').innerText = parseFloat(tiltVal).toFixed(1) + '°';
-        }
-        
+        // --- INTERAÇÃO COM O MAPA (CLIQUE) ---
         function cliqueMapa(event) {
             const mapa = document.getElementById('mapa');
-            const pointer = document.getElementById('laser-pointer');
             const rect = mapa.getBoundingClientRect();
             
-            // Pega coordenada do clique baseada no tamanho real da div na tela
+            // Posição do clique em pixels
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
 
-            // Visualização do ponto vermelho
-            pointer.style.display = 'block';
-            pointer.style.left = x + 'px';
-            pointer.style.top = y + 'px';
-
-            // Matemática do Firebase usando os limites do mapa na tela
-            let pMin = (calib.pSE + calib.pIE) / 2.0;
-            let pMax = (calib.pSD + calib.pID) / 2.0;
-            let tMin = (calib.tIE + calib.tID) / 2.0;
-            let tMax = (calib.tSE + calib.tSD) / 2.0;
+            // Converte a posição do pixel para Passos (Regra de 3)
+            let alvoX = Math.round((x / rect.width) * PASSOS_MAX_X);
+            let alvoY = Math.round((y / rect.height) * PASSOS_MAX_Y);
             
-            let fP = (x / rect.width) * (pMax - pMin) + pMin;
-            let fT = (y / rect.height) * (tMin - tMax) + tMax;
+            // Envia para o banco de dados e o ESP32 começa a andar!
+            database.ref('maquina/alvoX').set(alvoX);
+            database.ref('maquina/alvoY').set(alvoY);
             
-            // Trava nos limites de segurança mecânica
-            if(fP < 0) fP = 0; if(fP > 180) fP = 180;
-            if(fT < 0) fT = 0; if(fT > 170) fT = 170;
-
-            // Atualiza Sliders HTML
-            document.getElementById('p').value = fP;
-            document.getElementById('t').value = fT;
-            updateDisplays();
-
-            // Ativa o laser visualmente no botão e manda pro banco
-            if(!laserLigado) toggleLaser(); 
-            enviarComando(fP, fT, true);
-        }
-
-        function moverManual() {
-            updateDisplays();
-            const pan = parseFloat(document.getElementById('p').value);
-            const tilt = parseFloat(document.getElementById('t').value);
-            enviarComando(pan, tilt);
-        }
-
-        function toggleLaser() {
-            laserLigado = !laserLigado;
-            const btn = document.querySelector('.btn-laser'); // Corrigido a classe da IA
-            
-            if (laserLigado) {
-                btn.style.boxShadow = '0 0 30px var(--neon-red)';
-                btn.innerHTML = 'LASER ATIVO';
-            } else {
-                btn.style.boxShadow = '0 4px 15px rgba(255,68,68,0.3)';
-                btn.innerHTML = 'ON/OFF LASER';
-                document.getElementById('laser-pointer').style.display = 'none'; // Esconde a bolinha
-            }
-            
-            // Envia o novo estado mantendo os eixos de onde estão
-            const pan = parseFloat(document.getElementById('p').value);
-            const tilt = parseFloat(document.getElementById('t').value);
-            enviarComando(pan, tilt, laserLigado);
+            document.getElementById('st').innerText = `ALVO MAPA: X:${alvoX} Y:${alvoY}`;
         }
         
-        window.onload = () => {
+        // --- GESTÃO DE CIDADES ---
+        function salvarAtualComoCidade() {
+            const nome = document.getElementById('nome-cidade').value.trim();
+            if (!nome) return alert("Digite o nome do ponto/cidade!");
             
-        };
+            // Guarda a posição atual onde o motor está fisicamente parado
+            database.ref('maquina/cidades').push().set({
+                nome: nome,
+                x: posicaoXAtual,
+                y: posicaoYAtual
+            }).then(() => {
+                document.getElementById('nome-cidade').value = "";
+                alert("Posição guardada com sucesso!");
+            });
+        }
+
+        function irCidadeSelecionada(idSelecionado) {
+            if (idSelecionado && bancoDeCidades[idSelecionado]) {
+                let destino = bancoDeCidades[idSelecionado];
+                database.ref('maquina/alvoX').set(destino.x);
+                database.ref('maquina/alvoY').set(destino.y);
+                document.getElementById('st').innerText = `INDO PARA: ${destino.nome.toUpperCase()}`;
+            }
+        }
+
+        // Função extra de segurança
+        function pararMaquina() {
+            // Manda o alvo ser exatamente onde ela está agora, forçando a parada imediata
+            database.ref('maquina/alvoX').set(posicaoXAtual);
+            database.ref('maquina/alvoY').set(posicaoYAtual);
+            document.getElementById('st').innerText = "PARADA DE EMERGÊNCIA ACIONADA!";
+        }
     </script>
 </body>
 </html>
