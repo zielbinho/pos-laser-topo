@@ -112,18 +112,30 @@
                     </div>
                 </div>
 
-                <p style="font-size:12px; color:var(--text-dim); text-align:center;">Mover 500 passos</p>
+                <div style="margin-top: 15px; margin-bottom: 20px; padding: 15px; background: var(--card-alt); border-radius: 12px; border: 1px solid #444;">
+                    <label style="font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Quantidade de Passos</label>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 10px; margin-bottom: 10px;">
+                        <button class="d-btn" style="flex: 1; padding: 8px; font-size: 12px;" onclick="definirPasso(10)">10</button>
+                        <button class="d-btn" style="flex: 1; padding: 8px; font-size: 12px;" onclick="definirPasso(100)">100</button>
+                        <button class="d-btn" style="flex: 1; padding: 8px; font-size: 12px;" onclick="definirPasso(500)">500</button>
+                        <button class="d-btn" style="flex: 1; padding: 8px; font-size: 12px;" onclick="definirPasso(1000)">1000</button>
+                    </div>
+
+                    <input type="number" id="qtd-passos" value="500" style="width: 100%; text-align: center; font-family: var(--font-mono); font-size: 18px; color: var(--neon-blue);">
+                </div>
+
                 <div class="d-pad">
                     <div class="d-vazio"></div>
-                    <button class="d-btn" onclick="moverEixo('Y', 500)">Y +</button>
+                    <button class="d-btn" onclick="moverEixo('Y', 1)">Y +</button>
                     <div class="d-vazio"></div>
                     
-                    <button class="d-btn" onclick="moverEixo('X', -500)">X -</button>
-                    <button class="d-btn" style="background:var(--card-alt); border:1px solid #444;" onclick="enviarHoming()">Zerar<br>(HOME)</button>
-                    <button class="d-btn" onclick="moverEixo('X', 500)">X +</button>
+                    <button class="d-btn" onclick="moverEixo('X', -1)">X -</button>
+                    <button class="d-btn" style="background:#dc3545; color: white;" onclick="enviarHoming()">Zerar<br>(HOME)</button>
+                    <button class="d-btn" onclick="moverEixo('X', 1)">X +</button>
                     
                     <div class="d-vazio"></div>
-                    <button class="d-btn" onclick="moverEixo('Y', -500)">Y -</button>
+                    <button class="d-btn" onclick="moverEixo('Y', -1)">Y -</button>
                     <div class="d-vazio"></div>
                 </div>
             </section>
@@ -254,13 +266,27 @@
             pointer.style.top = percentY + '%';
         }
         
-        // --- FUNÇÕES DE MOVIMENTO ---
+        function definirPasso(valor) {
+            document.getElementById('qtd-passos').value = valor;
+        }
         
-        function moverEixo(eixo, quantidade) {
+        function moverEixo(eixo, direcao) {
+            // Lê o que está escrito no input e converte para número
+            let inputPassos = document.getElementById('qtd-passos').value;
+            let quantidade = parseInt(inputPassos);
+
+            // Verifica se a pessoa digitou algo válido
+            if (isNaN(quantidade) || quantidade <= 0) {
+                alert("Por favor, digite uma quantidade de passos válida (maior que zero).");
+                return;
+            }
+            
             let posBase = (eixo === 'X') ? posicaoXAtual : posicaoYAtual;
-            let novoAlvo = posBase + quantidade;
+
+            let novoAlvo = posBase + (quantidade * direcao);
+
             database.ref('maquina/alvo' + eixo).set(novoAlvo);
-            document.getElementById('st').innerText = `MOVENDO ${eixo}...`;
+            document.getElementById('st').innerText = `MOVENDO ${eixo} EM ${quantidade} PASSOS...`;
         }
 
         function enviarHoming() {
