@@ -271,22 +271,31 @@
         }
         
         function moverEixo(eixo, direcao) {
-            // Lê o que está escrito no input e converte para número
             let inputPassos = document.getElementById('qtd-passos').value;
             let quantidade = parseInt(inputPassos);
 
-            // Verifica se a pessoa digitou algo válido
             if (isNaN(quantidade) || quantidade <= 0) {
-                alert("Por favor, digite uma quantidade de passos válida (maior que zero).");
+                alert("Por favor, digite uma quantidade válida.");
                 return;
             }
-            
+
             let posBase = (eixo === 'X') ? posicaoXAtual : posicaoYAtual;
-
             let novoAlvo = posBase + (quantidade * direcao);
-
+            
+            // --- PROTEÇÃO NO SITE ---
+            let limiteMaximo = (eixo === 'X') ? 1160 : 2000; // 1160 no X, 2000 no Y
+            
+            if (novoAlvo > limiteMaximo) {
+                novoAlvo = limiteMaximo;
+                alert(`Atenção: Atingiu o limite máximo mecânico do Eixo ${eixo}!`);
+            }
+            if (novoAlvo < 0) {
+                novoAlvo = 0;
+                alert(`Atenção: Não pode retroceder além do ponto zero (Homing).`);
+            }
+            
             database.ref('maquina/alvo' + eixo).set(novoAlvo);
-            document.getElementById('st').innerText = `MOVENDO ${eixo} EM ${quantidade} PASSOS...`;
+            document.getElementById('st').innerText = `MOVENDO ${eixo} PARA ${novoAlvo}`;
         }
 
         function enviarHoming() {
