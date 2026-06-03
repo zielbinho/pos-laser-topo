@@ -179,8 +179,8 @@
 
     <script>
         // CONFIGURAÇÕES DA SUA MÁQUINA (Ajuste para o limite de passos físicos da sua mesa)
-        const PASSOS_MAX_X = 2000; 
-        const PASSOS_MAX_Y = 2000;
+        const PASSOS_MAX_X = 1160; 
+        const PASSOS_MAX_Y = 1160;
 
         // SUBSTITUA PELAS SUAS CREDENCIAIS DO FIREBASE
         const firebaseConfig = {
@@ -251,17 +251,23 @@
 
         // Move a bolinha vermelha no mapa com base na coordenada real do motor
         function atualizarPontoNoMapa() {
-            const mapa = document.getElementById('mapa');
             const pointer = document.getElementById('laser-pointer');
             
-            // Converte os passos para percentagem (0% a 100%) da tela
+            // Converte os passos para percentagem
             let percentX = (posicaoXAtual / PASSOS_MAX_X) * 100;
             let percentY = (posicaoYAtual / PASSOS_MAX_Y) * 100;
+            
+            // --- LÓGICA DE INVERSÃO VISUAL ---
+            // Se o eixo X estiver invertido (andar para a esquerda em vez da direita), tire as barras da linha abaixo:
+            percentX = 100 - percentX; 
+        
+            // Se o eixo Y estiver invertido (andar para cima em vez de baixo), tire as barras da linha abaixo:
+            percentY = 100 - percentY; 
             
             // Impede que a bolinha saia visualmente da div
             percentX = Math.max(0, Math.min(100, percentX));
             percentY = Math.max(0, Math.min(100, percentY));
-
+        
             pointer.style.left = percentX + '%';
             pointer.style.top = percentY + '%';
         }
@@ -305,7 +311,6 @@
             }
         }
         
-        // --- INTERAÇÃO COM O MAPA (CLIQUE) ---
         function cliqueMapa(event) {
             const mapa = document.getElementById('mapa');
             const rect = mapa.getBoundingClientRect();
@@ -313,12 +318,25 @@
             // Posição do clique em pixels
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
-
-            // Converte a posição do pixel para Passos (Regra de 3)
-            let alvoX = Math.round((x / rect.width) * PASSOS_MAX_X);
-            let alvoY = Math.round((y / rect.height) * PASSOS_MAX_Y);
+        
+            // Regra de 3 para descobrir a percentagem do clique (0.0 a 1.0)
+            let calcX = x / rect.width;
+            let calcY = y / rect.height;
+        
+            // --- LÓGICA DE INVERSÃO DO CLIQUE ---
+            // ATENÇÃO: Deixe aqui igual ao que deixou na bolinha vermelha!
+            calcX = 1 - calcX; // Inverte X
+            calcY = 1 - calcY; // Inverte Y
+        
+            // Multiplica pelos limites físicos
+            let alvoX = Math.round(calcX * PASSOS_MAX_X);
+            let alvoY = Math.round(calcY * PASSOS_MAX_Y);
             
-            // Envia para o banco de dados e o ESP32 começa a andar!
+            // Garante que não passa dos limites do software
+            alvoX = Math.max(0, Math.min(PASSOS_MAX_X, alvoX));
+            alvoY = Math.max(0, Math.min(PASSOS_MAX_Y, alvoY));
+            
+            // Envia para o banco de dados
             database.ref('maquina/alvoX').set(alvoX);
             database.ref('maquina/alvoY').set(alvoY);
             
